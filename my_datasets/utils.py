@@ -1,4 +1,4 @@
-import os, math, pdb, yaml
+import os, math, pdb, yaml, random
 
 # generate a destination path for the current file (within a dataset train/val directory)
 def get_dst_file_path(file_path, dst_dir, is_val_set):
@@ -31,35 +31,27 @@ def split_subsets_by_subdirs(path_list, train_split):
     return [train_paths, val_paths]
 
 # create and populate the dataset directory
-def make_dataset_dir(dst_dir, feat_params):
+def make_dataset_dir(dst_dir, feat_params, auto_subsets=False):
     if not os.path.exists(dst_dir):
-        os.makedirs(os.path.join(dst_dir, 'train'))
-        os.mkdir(os.path.join(dst_dir, 'val'))
+        os.mkdir(dst_dir)
+        if auto_subsets:
+            os.mkdir(os.path.join(dst_dir, 'train'))
+            os.mkdir(os.path.join(dst_dir, 'val'))
     with open(os.path.join(dst_dir, 'feat_params.yaml'), 'w') as handle:
         yaml.dump(feat_params, handle)
 
-# returns a list of filepaths collected from a parent directory and all subdirectories
-def recursive_file_retrieval(parent_path):
-    file_path_list = []
-    dir_list = []
-    parent_paths = [parent_path]
-    more_subdirs = True
-    while more_subdirs == True:
-        subdir_paths = [] 
-        for i, parent_path in enumerate(parent_paths):
-            dir_list.append(parent_path)
-            r,dirs,files = next(os.walk(parent_path)) 
-            for f in files:
-                file_path_list.append(os.path.join(r,f))
-            # if there are more subdirectories
-            if len(dirs) != 0:
-                for d in dirs:
-                    subdir_paths.append(os.path.join(r,d))
-                # if we've finished going through subdirectories (each parent_path), stop that loop
-            if i == len(parent_paths)-1:
-                # if loop about to finish, change parent_paths content and restart loop
-                if len(subdir_paths) != 0:
-                    parent_paths = subdir_paths
-                else:
-                    more_subdirs = False
-    return dir_list, file_path_list
+
+# if ds is already divided by spkr dirs, use this to split into subsets
+def create_ds_subsets(ds_dir, split=0.8):
+    pdb.set_trace()
+    _, sub_dirs, _ = next(os.walk(ds_dir))
+    train_list = random.sample(sub_dirs, k=math.floor(len(sub_dirs)*split))
+    test_list = [sub_dir for sub_dir in sub_dirs if sub_dir not in train_list]
+
+    if not os.path.exists(os.path.join(ds_dir, 'train')): os.mkdir(os.path.join(ds_dir, 'train'))
+    if not os.path.exists(os.path.join(ds_dir, 'val')): os.mkdir(os.path.join(ds_dir, 'val'))
+
+    for sub_dir in train_list:
+        os.rename(os.path.join(ds_dir, sub_dir), os.path.join(ds_dir, 'train', sub_dir))
+    for sub_dir in test_list:
+        os.rename(os.path.join(ds_dir, sub_dir), os.path.join(ds_dir, 'val', sub_dir))

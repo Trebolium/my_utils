@@ -2,6 +2,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
+def save_array_img(arr, path):
+    if type(arr) == list:
+        num_arrs = len(arr)
+        _, axs = plt.subplots(num_arrs)
+        for i in range(num_arrs):
+            axs[i].imshow(arr[i])
+    else:
+        plt.imshow(arr)
+    plt.savefig(path)
+    plt.close()
+
 """Determines what the correct axis is for viewing in matplotlib"""
 
 def fix_axes(melspec, librosa_used):

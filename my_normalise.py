@@ -1,5 +1,7 @@
 import numpy as np
 import torch, pdb
+from my_os import recursive_file_retrieval
+from tqdm import tqdm
 
 """
 This script normalises data across all features. In the case of audio spectrograms,
@@ -88,3 +90,94 @@ class TorchStatsRecorder:
                                  
             # update total number of seen samples
             self.nobservations += n
+
+
+"""
+    Goes through a dataset directory (just the partition for training,
+    And collects mean and std info across a specified dimension
+    of the feature arrays stored within it
+    Returns the total mean and std
+"""
+def get_norm_stats(src_path, num_feats=None, which_cuda=0, red_dims=0, report_errs=False):
+
+    _, file_path_list = recursive_file_retrieval(src_path)
+
+    # ensure val and test dirs are not within path
+    for file_p in file_path_list:
+        if 'val' in file_p or 'test' in file_p or 'dev' in file_p:
+            raise Exception("Directory named val or test found in dataset. Only training set should be used for normalisation")
+
+    device = torch.device(f'cuda:{which_cuda}' if torch.cuda.is_available() else "cpu")
+    stats_rec = StatsRecorder(stats_dim=red_dims)
+    error_list = []
+    
+    for f_path in tqdm(file_path_list):
+        if not f_path.endswith('.npy'): continue
+        try:
+            feats = np.load(f_path)
+        except ValueError as e:
+            error_list.append((f_path, e))
+            continue
+        # feats = torch.from_numpy(feats).float().to(device)
+        if num_feats != None:
+            feats = feats[:,:num_feats]
+        stats_rec.update(feats)
+
+    total_mean, total_std = stats_rec.mean, stats_rec.std
+    # print(f'Total dataset stats: \n\n Mean: {total_mean} \n Std: {total_std}')
+    if report_errs:
+        return total_mean, total_std
+    else:
+        return total_mean, total_std, error_list
+
+
+# apply stats data to incoming example
+def apply_norm_stats(feats, total_mean, total_std, which_cuda=0):
+
+    device = torch.device(f'cuda:{which_cuda}' if torch.cuda.is_available() else "cpu")
+    feats = torch.from_numpy(feats).to(device)
+    normed_feats = ((feats - total_mean) / total_std).cpu().numpy()
+
+    return normed_feats
+
+
+# map array elements to limits [0,1]
+def zero_one_mapped(arr):
+    grounded_arr = arr - np.min(arr)
+    normed_arr = grounded_arr / np.max(grounded_arr)
+    return normed_arr
+
+# normalize array to be unit variance
+def unit_var(arr):
+    return (arr - np.mean(arr)) / np.std(arr)
+
+def schluter(arr, stats):
+    # pdb.set_trace()
+    total_mean, total_std = stats[0], stats[1]
+    if arr.shape[1] != len(total_mean) or arr.shape[1] != len(total_std):
+        raise Exception('Schluter Norm Error: Mismatch between array and stats dimensions')
+    normed_arr = (arr - total_mean) / total_std
+    return normed_arr
+
+def guv(arr, stats):
+    freq_total_means, freq_total_stds = stats[0], stats[1]
+    global_mean = np.mean(freq_total_means)
+    global_std = np.sqrt(np.sum(np.square(freq_total_stds))/len(freq_total_stds)) #https://www.statology.org/averaging-standard-deviations/, https://stats.stackexchange.com/questions/25848/how-to-sum-a-standard-deviation
+    return (arr - global_mean) / global_std
+
+def norm_feat_arr(arr, norm_method, stats=None):
+    if norm_method == 'zero_one':
+        arr = zero_one_mapped(arr)
+    elif norm_method == 'unit_var':
+        arr = unit_var(arr)
+    elif norm_method == 'global_unit_var':
+        arr = guv(arr, stats)
+    elif norm_method == 'schluter':
+        if stats==None:
+            raise Exception('Schluter Norm Error: Requires stats to be applied to data')
+        arr = schluter(arr, stats)
+    elif norm_method == None:
+        pass
+    else:
+        raise Exception('Norm method not recognised.')
+    return arr

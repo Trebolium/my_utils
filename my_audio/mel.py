@@ -1,4 +1,4 @@
-import librosa, pdb, copy#, pysptk
+import librosa, pdb, copy #, pysptk
 import numpy as np
 import soundfile as sf
 import pyworld as pw
@@ -41,13 +41,13 @@ def add_butter_noise(audio, sr):
 
 # mel_filter = mel(16000, 1024, fmin=90, fmax=7600, n_mels=80).T
 """applies stft transform to audio, then mel filter banks"""
-def audio_to_mel_autovc(audio, fft_size, hop_size, mel_filter):
+def audio_to_mel_autovc(audio, fft_size, hop_size: int, mel_filter):
     D = pySTFT(audio, fft_size, hop_size).T
     db_unnormed_melspec = np.dot(D, mel_filter)
     return db_unnormed_melspec
 
 # min_level = np.exp(-100 / 20 * np.log(10))
-"""Converts amplitude to decibels and normalises"""
+"""Converts amplitude to decibels and optionally normalises"""
 def db_normalize(melspec, min_level, normalise=True):
     floored_mel = np.maximum(min_level, melspec) # creates a new array, clipping at the minimum_level
     db_melspec = 20 * np.log10(floored_mel) - 16 # converts to decibels (20*log10) and removes 16db for headroom

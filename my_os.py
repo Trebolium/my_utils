@@ -91,7 +91,6 @@ def split_dataset_subsets(dataset_path, split_ratio, relevant_ext, seed_int=1, u
     
     random.shuffle(items)
 
-
     num_train_items = math.floor(split_ratio*len(items))
     for i in range(len(items)):
         if i <= num_train_items:

@@ -1,5 +1,9 @@
 import numpy as np
-import scipy, librosa, pdb
+import scipy, librosa, pdb, sys
+sys.path.insert(1, '/homes/bdoc3/my_utils')
+from my_os import recursive_file_retrieval
+from my_datasets.utils import make_dataset_dir
+from tqdm import tqdm
 
 # analyses audio loudness to determine of an instrument is playing
 def compute_activation_confidence(
@@ -97,25 +101,47 @@ def track_energy(wave, win_len, win):
     return np.mean((wavmat.T * win), axis=1)
 
 # generates list of chunks from audio using activity likelihood (conf) and duration threshold
-def audiochunks_from_conf(audio, rate, conf, act_thresh=0.9, time_thresh=3.2):
-    time_durs = []
+def audiochunks_from_conf(audio, rate, conf, act_thresh=0.9, time_thresh=1):
+
+    def chunk():
+
+        start_samp = int(last_act_on_time * rate)
+        end_samp = int(entry[0]*rate)
+        audio_chunk = audio[start_samp:end_samp]
+        return audio_chunk
+
+ 
     audio_chunks = []
     act_on = False
+    total_entries = len(conf)
+
     for i, entry in enumerate(conf):
+
         if entry[1]>=act_thresh:
+
+            # State 1: If no onset logged, energy detected
             if act_on == False:
+
                 last_act_on_time = entry[0]
                 act_on = True
+
+            # State 2: If onset logged, energy detected, and last energy entry
+            elif i == total_entries - 1:
+                silence_duration = entry[0] - last_act_on_time
+                if silence_duration >= time_thresh:
+                    audio_chunks.append(chunk())
+                
         else:
+
+            # State 3: If onset logged, energy no longer detected
             if act_on == True:
-                duration = entry[0] - last_act_on_time
-                if duration >= time_thresh:
-                    time_durs.append((last_act_on_time,duration))
-                    start_samp = int(last_act_on_time*rate)
-                    end_samp = int(entry[0]*rate)
-                    audio_chunk = audio[start_samp:end_samp]
-                    audio_chunks.append(audio_chunk)
-                act_on = False
+                silence_duration = entry[0] - last_act_on_time
+
+                if silence_duration >= time_thresh:
+                    # enough silence has passed to consider this chunk finished. Chunkify!
+                    audio_chunks.append(chunk())
+                    act_on = False
+
     return audio_chunks
 
 def hwr(x):
@@ -134,8 +160,8 @@ def hwr(x):
     """
     return (x + np.abs(x)) / 2
 
-def path_to_damp_format(file_path, feat_params):
-    audio, rate = librosa.load(file_path, sr=feat_params['sr'])
+def path_to_damp_format(file_path, trg_sr):
+    audio, rate = librosa.load(file_path, sr=trg_sr)
     conf = compute_activation_confidence(audio, rate)
     audio_chunks = audiochunks_from_conf(audio, rate, conf)
     cat_audio = np.asarray([samp for audio_chunk in audio_chunks for samp in audio_chunk]) #crude, but as there are so few splits anticipated   
@@ -151,12 +177,21 @@ import sys, os, pdb
 import soundfile as sf
 
 if __name__ == '__main__':
-    file_path = sys.argv[1]
-    dst_f_path = os.path.join(sys.argv[2], os.path.basename(file_path)[:-4] +'_concat.wav') 
-    sr = int(sys.argv[3])
-    pdb.set_trace()
-    y, _ = librosa.load(file_path, sr=sr)
+    src_dir = sys.argv[1]
+    dst_dir = sys.argv[2]
+    ext = sys.argv[3]
+    sr = int(sys.argv[4])
 
-    y = desilence_concat_audio(y, sr)
-    
-    sf.write(dst_f_path, y, samplerate=sr)
+    _, fps = recursive_file_retrieval(src_dir)
+    fps = [fp for fp in fps if not fp.startswith('.') and fp.endswith(ext)]
+    make_dataset_dir(dst_dir, auto_subsets=False)
+
+    pdb.set_trace()
+    for fp in tqdm(fps):
+        fn = os.path.basename(fp)
+        voice_dir = os.path.basename(os.path.dirname(fp))
+        trg_fn = voice_dir +'_' +fn
+        if not os.path.exists(os.path.join(dst_dir, voice_dir)):
+            os.mkdir(os.path.join(dst_dir, voice_dir))
+        y = path_to_damp_format(fp, sr)
+        sf.write(os.path.join(dst_dir, voice_dir, trg_fn), y, samplerate=sr)

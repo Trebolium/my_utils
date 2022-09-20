@@ -1,7 +1,8 @@
 import numpy as np
 import pyworld as pw
 import pysptk, scipy, copy, warnings, pdb
-
+# import soundfile as sf
+# import librosa
 
 # Alpha value used in 'Mel-generalized cepstral analysis
 #   a unified approach to speech spectral estimation', referenced in Nercessian 2020.
@@ -117,7 +118,7 @@ def nan_helper(y):
 
     return np.isinf(y), lambda z: z.nonzero()[0]
 
-def freq_to_vuv_midi(f0):
+def freq_to_vuv_midi(f0, ignore_pitchless=True):
     #Convert to midi notes, with second vector displaying 1 when there's no pitch detected
     with warnings.catch_warnings(): # warning 
         warnings.simplefilter("ignore", category=RuntimeWarning)
@@ -126,16 +127,21 @@ def freq_to_vuv_midi(f0):
     "Nan related"
     nans, x= nan_helper(y)
     if np.all(nans) == True:
-        raise ValueError('No voice pitch detected in segment')
+        # if ignore_pitchless:
+        #     raise ValueError('No voice pitch detected in segment')
+        # else:
+        y = np.stack((np.zeros((y.shape[0])), np.ones((y.shape[0]))), axis=-1)
+        return y
     naners=np.isinf(y)
+    # interpret pitch between voiced sections 
     y[nans]= np.interp(x(nans), x(~nans), y[~nans])
-    # y=[float(x-(min_note-1))/float(max_note-(min_note-1)) for x in y]
     y=np.array(y).reshape([len(y),1])
-    guy=np.array(naners).reshape([len(y),1])
-    y=np.concatenate((y,guy),axis=-1)
+    unvoiced=np.array(naners).reshape([len(y),1])
+    y=np.concatenate((y,unvoiced),axis=-1)
     return y
 
-def chandna_feats(audio, feat_params, include_f0=True, mode='mfsc'):
+def chandna_feats(audio, feat_params, mode='mfsc'):
+    pdb.set_trace()
     feats=pw.wav2world(audio, feat_params['sr'],frame_period=feat_params['frame_dur_ms'])
     ap = 10*np.log10(feats[2]**2)
     harm=10*np.log10(feats[1])
@@ -153,15 +159,21 @@ def chandna_feats(audio, feat_params, include_f0=True, mode='mfsc'):
 
     return out_feats
 
-
+import torch
 def mfsc_to_world_to_audio(harm_mfsc, ap_mfsc, midi_voicings, feat_params):
+    # pdb.set_trace()
+    # try:
     harm_sp = mfsc_to_sp(harm_mfsc, feat_params['fft_size']//2+1, feat_params['sr'])
     harm_sp_rescaled = 10**(harm_sp/10)
     ap_sp = mfsc_to_sp(ap_mfsc, feat_params['fft_size']//2+1, feat_params['sr'])
     ap_sp_rescaled = np.sqrt((10**(ap_sp/10))) 
+    if type(midi_voicings) == torch.Tensor:
+        midi_voicings = midi_voicings.numpy()
     f0 = midi_to_worldf0(midi_voicings)
     harm_sp, ap_sp, f0 = np.ascontiguousarray(harm_sp_rescaled), np.ascontiguousarray(ap_sp_rescaled), np.ascontiguousarray(f0)
     synthed_audio = pw.synthesize(f0, harm_sp, ap_sp, feat_params['sr'], feat_params['frame_dur_ms'])
+    # except Exception as e:
+    #     pdb.set_trace()
     return synthed_audio
 
 
@@ -205,3 +217,40 @@ def gen_world_feat(y, feat_params):
     # aper_env = pw.d4c(y, refined_f0, t_stamp, feat_params['sr'])
     # ap_env_reduced = pw.code_aperiodicity(aper_env, feat_params['sr'])
     return spec_env
+
+def get_world_feats(y, feat_params):
+    y = y.astype('double')
+    if feat_params['w2w_process'] == 'wav2world':
+        feats=pw.wav2world(y, feat_params['sr'],frame_period=feat_params['frame_dur_ms'])
+        harm = feats[1]
+        aper = feats[2]
+        refined_f0 = feats[0]
+
+    else:
+        if feat_params['w2w_process'] == 'harvest':
+            f0, t_stamp = pw.harvest(y, feat_params['sr'], feat_params['fmin'], feat_params['fmax'], feat_params['frame_dur_ms'])
+        elif feat_params.w2w_process =='dio':
+            f0, t_stamp = pw.dio(y, feat_params['sr'], feat_params['fmin'], feat_params['fmax'], frame_period = feat_params['frame_dur_ms'])
+        refined_f0 = pw.stonemask(y, f0, t_stamp, feat_params['sr'])
+        harm = pw.cheaptrick(y, refined_f0, t_stamp, feat_params['sr'], f0_floor=feat_params['fmin'])
+        aper = pw.d4c(y, refined_f0, t_stamp, feat_params['sr'])
+
+    refined_f0 = freq_to_vuv_midi(refined_f0) # <<< this can be done at training time
+    
+    if feat_params['dim_red_method'] == 'code-h':
+        harm = code_harmonic(harm, feat_params['num_harm_feats'])
+        aper = code_harmonic(aper, feat_params['num_aper_feats'])
+    elif feat_params['dim_red_method'] == 'world':
+        harm = pw.code_spectral_envelope(harm, feat_params['sr'], feat_params['num_harm_feats'])
+        aper = pw.code_aperiodicity(aper, feat_params['num_harm_feats'])
+    elif feat_params['dim_red_method'] == 'chandna':
+        harm = 10*np.log10(harm) # previously, using these logs was a separate optional process to 'chandna'
+        aper = 10*np.log10(aper**2)
+        harm = sp_to_mfsc(harm, feat_params['num_harm_feats'], 0.45)
+        aper =sp_to_mfsc(aper, feat_params['num_aper_feats'], 0.45)
+    else:
+        raise Exception("The value for dim_red_method was not recognised")
+
+    out_feats=np.concatenate((harm,aper,refined_f0),axis=1)
+
+    return out_feats
