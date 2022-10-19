@@ -1,32 +1,60 @@
 from asyncore import file_dispatcher
 import os, sys, random, shutil, math, pdb
 from tqdm import tqdm
+from my_interaction import binary_answer
+
+# as it says on the tin
+def overwrite_dir(directory, ask):
+    if os.path.exists(directory):
+        if ask:
+            print(f'Directory name {directory} already exists. Would you like to overwrite it?')
+            answer = binary_answer()
+            if answer:
+                shutil.rmtree(directory)
+            else:
+                print('Try a new file name and re-run this program')
+                exit(0)
+        else:
+            shutil.rmtree(directory)
+    os.makedirs(directory)
+
 
 # returns a list of filepaths collected from a parent directory and all subdirectories
-def recursive_file_retrieval(parent_path):
+def recursive_file_retrieval(parent_path, ignore_hidden_dirs=False):
+    
     file_path_list = []
     dir_list = []
     parent_paths = [parent_path]
+
     more_subdirs = True
     while more_subdirs == True:
-        subdir_paths = [] 
+        subdir_paths = []
         for i, parent_path in enumerate(parent_paths):
+            # print(parent_path)
+            if ignore_hidden_dirs:
+                if os.path.basename(parent_path).startswith('.'):
+                    continue
+
             dir_list.append(parent_path)
-            r,dirs,files = next(os.walk(parent_path)) 
+            r,dirs,files = next(os.walk(parent_path, topdown=True, onerror=None, followlinks=False)) 
             for f in files:
                 file_path_list.append(os.path.join(r,f))
+
             # if there are more subdirectories
             if len(dirs) != 0:
                 for d in dirs:
                     subdir_paths.append(os.path.join(r,d))
-                # if we've finished going through subdirectories (each parent_path), stop that loop
+
+            # if we've finished going through subdirectories (each parent_path), stop that loop
             if i == len(parent_paths)-1:
                 # if loop about to finish, change parent_paths content and restart loop
                 if len(subdir_paths) != 0:
                     parent_paths = subdir_paths
                 else:
                     more_subdirs = False
+
     return dir_list, file_path_list
+
 
 # randomly choses file paths from a list and copy them to a destination folder
 def copy_random_files(tracklist, dst_dir, num_choices):

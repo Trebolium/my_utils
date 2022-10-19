@@ -1,7 +1,7 @@
 import os, time, sys, argparse, pdb
 from librosa.filters import mel
 import numpy as np
-sys.path.insert(1, '~/my_utils')
+sys.path.insert(1, '/homes/bdoc3/my_utils')
 from my_os import recursive_file_retrieval
 from my_audio.utils import audio2feats_process
 from my_container import substring_exclusion, substring_inclusion, balance_by_strings, separate_by_starting_substring
@@ -87,7 +87,7 @@ if __name__ == '__main__':
     parser.add_argument('-wd','--which_dataset', default='vctk', type=str)
     parser.add_argument('-ne','--numpy_ext', default='.npy', type=str)
     parser.add_argument('-cc','--channel_choice', default='left', type=str)
-    parser.add_argument('-ud','--desilence', default=0, type=int)
+    parser.add_argument('-ds','--desilence', default=0, type=int)
     # feat params
     parser.add_argument('-sr','--sampling_rate', default=16000, type=int)
     parser.add_argument('-fdm','--frame_dur_ms', default=16, type=int)    

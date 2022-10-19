@@ -46,6 +46,14 @@ def audio_to_mel_autovc(audio, fft_size, hop_size: int, mel_filter):
     db_unnormed_melspec = np.dot(D, mel_filter)
     return db_unnormed_melspec
 
+
+def raw_audio_to_mel_autovc(y, mel_filter, min_level, hop_size, feat_params):   
+    y = add_butter_noise(y,feat_params['sr'])
+    db_unnormed_melspec = audio_to_mel_autovc(y, feat_params['fft_size'], hop_size, mel_filter)
+    autovc_mel = db_normalize(db_unnormed_melspec, min_level)
+    return autovc_mel
+
+
 # min_level = np.exp(-100 / 20 * np.log(10))
 """Converts amplitude to decibels and optionally normalises"""
 def db_normalize(melspec, min_level, normalise=True):

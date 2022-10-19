@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import torch
+from my_arrays import tensor_to_array
 
-def save_array_img(arr, path):
+def array_to_img(arr, path='', close=True):
     if type(arr) == list:
         num_arrs = len(arr)
         _, axs = plt.subplots(num_arrs)
@@ -10,8 +12,17 @@ def save_array_img(arr, path):
             axs[i].imshow(arr[i])
     else:
         plt.imshow(arr)
-    plt.savefig(path)
-    plt.close()
+    if path != '':
+        plt.savefig(path)
+    if close:
+        plt.close()
+
+def spec_to_notebook_img(arr, rot=1):
+    if type(arr) == torch.Tensor:
+        arr = tensor_to_array(arr)
+    for i in range(rot):
+        arr = np.rot90(arr)
+    array_to_img(arr, '', close=False)
 
 """Determines what the correct axis is for viewing in matplotlib"""
 

@@ -15,15 +15,16 @@ import pdb
         patience left (int) if not
 """
 class EarlyStopping():
-    def __init__(self, patience, verbose=True):
+    def __init__(self, patience, threshold = 0.0, verbose=True):
         self.patience = patience
         self.counter = 0
         self.lowest_loss = float('inf')
         self.verbose = verbose
+        self.threshold = threshold
 
     def check(self, loss):
                 
-        if loss < self.lowest_loss:
+        if loss < (self.lowest_loss - self.threshold):
             self.lowest_loss = loss
             self.counter = 0
             if self.verbose:

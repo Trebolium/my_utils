@@ -1,5 +1,7 @@
 import numpy as np
 import random
+import math
+import torch
 
 
 """
@@ -37,3 +39,30 @@ def fix_feat_length(feats, crop_size, offset=None, this_seed=None):
                 feats = np.pad(feats, pad_width=((diff//2, diff//2+1),(0,0)), mode='constant', constant_values=0)
 
     return feats, offset
+
+
+def pad_seq(x, base=32):
+    len_out = int(base * math.ceil(float(x.shape[0])/base))
+    len_pad = len_out - x.shape[0]
+    assert len_pad >= 0
+    return np.pad(x, ((0,len_pad),(0,0)), 'constant'), len_pad
+
+
+
+def container_to_tensor(container, add_batch_dim=False, device='cpu'):
+    
+    if type(container) == list:
+        container = np.asarray(container)
+        
+    container = torch.from_numpy(container).float().to(device)
+
+    if add_batch_dim:
+        container = container.unsqueeze(0)
+    
+    return container
+
+
+def tensor_to_array(tensor):
+    squeezed_tensor = torch.squeeze(tensor)
+    arr = squeezed_tensor.detach().cpu().numpy()
+    return arr

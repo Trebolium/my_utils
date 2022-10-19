@@ -1,4 +1,4 @@
-import os, sys, pdb, copy
+import os, sys, pdb, copy, csv
 import numpy as np
 
 """List manipulations"""
@@ -101,9 +101,3 @@ def flatten_and_label(list_of_lists):
     group_labels_arr = np.asarray(group_labels)
     
     return grouped_list_arr, group_labels_arr
-
-
-"""Misc"""
-
-def str2bool(v):
-    return v.lower() in ('true')
