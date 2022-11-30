@@ -36,5 +36,5 @@ class EarlyStopping():
                 print(f'Early Stopping: Patience threshold exceeded!')
                 return 0
             else:
-                print(f'Early stopping: Loss {loss} is not the lowest. Patience now at {self.patience-self.counter}.')
+                print(f'Early stopping: Loss {loss} is not lower than the lowest ({self.lowest_loss}). Patience now at {self.patience-self.counter}.')
                 return self.patience-self.counter
