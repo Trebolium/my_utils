@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import torch
-from my_arrays import tensor_to_array
+from neural.torch_utils import tensor_to_array
 
 def array_to_img(arr, path='', close=True):
     if type(arr) == list:
