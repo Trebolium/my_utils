@@ -1,8 +1,6 @@
 import numpy as np
 import random
 import math
-import torch
-import warnings
 
 
 """
@@ -51,26 +49,6 @@ def pad_seq(x, base=32):
     len_pad = len_out - x.shape[0]
     assert len_pad >= 0
     return np.pad(x, ((0,len_pad),(0,0)), 'constant'), len_pad
-
-
-
-def container_to_tensor(container, add_batch_dim=False, device='cpu'):
-    
-    if type(container) == list:
-        container = np.asarray(container)
-    if type(container) == np.ndarray:
-        container = torch.from_numpy(container).float()
-
-    if add_batch_dim:
-        container = container.unsqueeze(0)
-    container = container.to(device)
-    return container
-
-
-def tensor_to_array(tensor):
-    squeezed_tensor = torch.squeeze(tensor)
-    arr = squeezed_tensor.detach().cpu().numpy()
-    return arr
 
 
 # find_runs taken with citation from https://gist.github.com/alimanfoo/c5977e87111abe8127453b21204c1065
