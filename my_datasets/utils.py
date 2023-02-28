@@ -31,14 +31,16 @@ def split_subsets_by_subdirs(path_list, train_split):
     return [train_paths, val_paths]
 
 # create and populate the dataset directory
-def make_dataset_dir(dst_dir, feat_params, auto_subsets=False):
+def make_dataset_dir(dst_dir, feat_params=None, auto_subsets=False):
     if not os.path.exists(dst_dir):
         os.mkdir(dst_dir)
         if auto_subsets:
             os.mkdir(os.path.join(dst_dir, 'train'))
             os.mkdir(os.path.join(dst_dir, 'val'))
-    with open(os.path.join(dst_dir, 'feat_params.yaml'), 'w') as handle:
-        yaml.dump(feat_params, handle)
+            os.mkdir(os.path.join(dst_dir, 'test'))
+    if not feat_params == None:
+        with open(os.path.join(dst_dir, 'feat_params.yaml'), 'w') as handle:
+            yaml.dump(feat_params, handle)
 
 
 # if ds is already divided by spkr dirs, use this to split into subsets
