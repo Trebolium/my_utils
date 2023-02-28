@@ -1,6 +1,8 @@
 import numpy as np
 import pyworld as pw
 import pysptk, scipy, copy, warnings, pdb
+from my_arrays import fix_feat_length
+from my_audio.pitch import midi_as_onehot
 # import soundfile as sf
 # import librosa
 
@@ -140,6 +142,23 @@ def freq_to_vuv_midi(f0, ignore_pitchless=True):
     y=np.concatenate((y,unvoiced),axis=-1)
     return y
 
+
+def onehotmidi_from_world_fp(pitch_feat_path, offset, window_size, midi_range):
+    pitch_pred = np.load(pitch_feat_path)[:,-2:]
+    midi_contour = pitch_pred[:,0]
+    # remove the interpretted values generated because of unvoiced sections
+    unvoiced = pitch_pred[:,1].astype(int) == 1
+    midi_contour[unvoiced] = 0
+
+    if offset < 0:
+        midi_trimmed, _ = fix_feat_length(midi_contour, window_size)
+    else:
+        midi_trimmed = midi_contour[offset:(offset+window_size)]
+    onehot_midi = midi_as_onehot(midi_trimmed, midi_range)
+
+    return onehot_midi
+
+
 def chandna_feats(audio, feat_params, mode='mfsc'):
     pdb.set_trace()
     feats=pw.wav2world(audio, feat_params['sr'],frame_period=feat_params['frame_dur_ms'])
@@ -159,7 +178,7 @@ def chandna_feats(audio, feat_params, mode='mfsc'):
 
     return out_feats
 
-import torch
+
 def mfsc_to_world_to_audio(harm_mfsc, ap_mfsc, midi_voicings, feat_params):
     # pdb.set_trace()
     # try:
@@ -167,8 +186,8 @@ def mfsc_to_world_to_audio(harm_mfsc, ap_mfsc, midi_voicings, feat_params):
     harm_sp_rescaled = 10**(harm_sp/10)
     ap_sp = mfsc_to_sp(ap_mfsc, feat_params['fft_size']//2+1, feat_params['sr'])
     ap_sp_rescaled = np.sqrt((10**(ap_sp/10))) 
-    if type(midi_voicings) == torch.Tensor:
-        midi_voicings = midi_voicings.numpy()
+    # if type(midi_voicings) == torch.Tensor:
+    #     midi_voicings = midi_voicings.numpy()
     f0 = midi_to_worldf0(midi_voicings)
     harm_sp, ap_sp, f0 = np.ascontiguousarray(harm_sp_rescaled), np.ascontiguousarray(ap_sp_rescaled), np.ascontiguousarray(f0)
     synthed_audio = pw.synthesize(f0, harm_sp, ap_sp, feat_params['sr'], feat_params['frame_dur_ms'])
