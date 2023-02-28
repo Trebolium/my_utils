@@ -11,7 +11,7 @@ for i in sys.path:
 sys.path.insert(1, '/homes/bdoc3/my_utils')
 # from schluterNorm_dataset import normalise_data
 from my_os import recursive_file_retrieval
-from audio.world import chandna_feats
+from my_audio.world import chandna_feats
 
 """This script collects all files from a src datasets, and copies files to a dst dataset that does not yet have them.
     Check to ensure that the ds your are copying from has the same tree structure as the desired dst directory
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     # dirs
     src_dir = sys.argv[1]
     dst_dir = sys.argv[2]
-    f_ext = '.m4a'
+    f_ext = sys.argv[3]
     # dataset_path = '/import/c4dm-datasets/DAMP_Intonation_Dataset/vocal_tracks'
 
     # params
@@ -57,7 +57,6 @@ if __name__ == '__main__':
     # with open(os.path.join(dst_dir, 'feat_params.yaml'), 'w') as File:
     #     yaml.dump(feat_params, File, default_flow_style=False)
 
-
     counter = 0
     exceptions = []
     missing_fns = []
@@ -89,7 +88,6 @@ if __name__ == '__main__':
             print(f'saving {item} to missing_voices.txt')
             f.write("%s\n" % item)
 
-    pdb.set_trace()
             # # CONFIGURE SPECIFIC TO DATASET (CURRENTLY SET FOR DAMP INTONATION DS)
             # fn = os.path.basename(src_dir_fps)
             # subset = src_dir_fps.split('/')[-3]
