@@ -2,7 +2,7 @@ from ast import Assert
 import numpy as np
 import mpu.ml, pdb
 
-"""convert midi contours to 1hot representation
+"""convert continuous midi values to 1hot representation
 not relevant to other 1hotting as 0 means unvoiced,
 and treating outliers is specific for midi handling
 """
@@ -45,4 +45,3 @@ if __name__ == '__main__':
     contour = [69.34, 44.12, 33, 0, 0, 80, 55]
     cont_range = range(10,88)
     test = midi_as_onehot(contour, cont_range)
-
