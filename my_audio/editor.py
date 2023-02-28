@@ -1,9 +1,12 @@
 import numpy as np
-import scipy, librosa, pdb, sys
+import scipy, librosa, sys
 sys.path.insert(1, '/homes/bdoc3/my_utils')
+from my_audio.utils import desilence_concat_audio, open_audio_fp
 from my_os import recursive_file_retrieval
 from my_datasets.utils import make_dataset_dir
 from tqdm import tqdm
+import os, pdb
+import soundfile as sf
 
 # analyses audio loudness to determine of an instrument is playing
 def compute_activation_confidence(
@@ -160,38 +163,34 @@ def hwr(x):
     """
     return (x + np.abs(x)) / 2
 
-def path_to_damp_format(file_path, trg_sr):
-    audio, rate = librosa.load(file_path, sr=trg_sr)
-    conf = compute_activation_confidence(audio, rate)
-    audio_chunks = audiochunks_from_conf(audio, rate, conf)
-    cat_audio = np.asarray([samp for audio_chunk in audio_chunks for samp in audio_chunk]) #crude, but as there are so few splits anticipated   
-    return cat_audio
 
+# process for removing silence from audio and reconcatenating
 def desilence_concat_audio(audio, rate):
     conf = compute_activation_confidence(audio, rate)
     audio_chunks = audiochunks_from_conf(audio, rate, conf)
     cat_audio = np.asarray([samp for audio_chunk in audio_chunks for samp in audio_chunk]) #crude, but as there are so few splits anticipated   
     return cat_audio
 
-import sys, os, pdb
-import soundfile as sf
 
+
+# quick script for writing concatenated deslienced audio to new dir
 if __name__ == '__main__':
     src_dir = sys.argv[1]
     dst_dir = sys.argv[2]
     ext = sys.argv[3]
     sr = int(sys.argv[4])
+    must_have_string = sys.argv[5]
 
     _, fps = recursive_file_retrieval(src_dir)
-    fps = [fp for fp in fps if not fp.startswith('.') and fp.endswith(ext)]
-    make_dataset_dir(dst_dir, auto_subsets=False)
+    fps = [fp for fp in fps if not fp.startswith('.') and fp.endswith(ext) and must_have_string in fp]
+    make_dataset_dir(dst_dir)
 
-    pdb.set_trace()
     for fp in tqdm(fps):
         fn = os.path.basename(fp)
         voice_dir = os.path.basename(os.path.dirname(fp))
         trg_fn = voice_dir +'_' +fn
         if not os.path.exists(os.path.join(dst_dir, voice_dir)):
             os.mkdir(os.path.join(dst_dir, voice_dir))
-        y = path_to_damp_format(fp, sr)
+        audio, sr = open_audio_fp(fp, sr)
+        y = desilence_concat_audio(audio, sr)
         sf.write(os.path.join(dst_dir, voice_dir, trg_fn), y, samplerate=sr)
