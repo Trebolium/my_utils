@@ -20,7 +20,7 @@ def overwrite_dir(directory, ask):
 
 
 # returns a list of filepaths collected from a parent directory and all subdirectories
-def recursive_file_retrieval(parent_path, ignore_hidden_dirs=False):
+def recursive_file_retrieval(parent_path, ignore_hidden_dirs=False, return_parent=True):
     
     file_path_list = []
     dir_list = []
@@ -52,6 +52,8 @@ def recursive_file_retrieval(parent_path, ignore_hidden_dirs=False):
                     parent_paths = subdir_paths
                 else:
                     more_subdirs = False
+    
+    if not return_parent: dir_list = dir_list[1:]
 
     return dir_list, file_path_list
 
