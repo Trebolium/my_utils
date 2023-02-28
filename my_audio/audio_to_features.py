@@ -137,7 +137,7 @@ if __name__ == '__main__':
 
     if config.find_diff:
         _, dst_dir_all_fps = recursive_file_retrieval(config.dst_dir)
-        dst_dir_all_fns = [os.path.basename(path)[:-4] for path in dst_dir_all_fps]
+        dst_dir_all_fns = [os.path.basename(path)[:-len(config.audio_ext)] for path in dst_dir_all_fps]
         filtered_list = [path for path in filtered_list if os.path.basename(path)[:-len(config.audio_ext)] not in dst_dir_all_fns]
 
     if config.feat_type == 'mel':
@@ -145,7 +145,7 @@ if __name__ == '__main__':
         min_level = np.exp(-100 / 20 * np.log(10))
         hop_size = int((feat_params['frame_dur_ms']/1000) * feat_params['sr'])
         args = [config, feat_params, mel_filter, min_level, hop_size]
-    elif config.feat_type == 'world':
+    elif config.feat_type == 'world' or config.feat_type == 'crepe':
         args = [config, feat_params]
     else:
         raise Exception('feat_type param was not recognised.')
@@ -153,7 +153,8 @@ if __name__ == '__main__':
     if config.use_multithread:
         multithread_chunks(audio2feats_process, filtered_list, config.num_processes, args)
     else:
-        for fp in filtered_list:
+        for i, fp in enumerate(filtered_list):
+            print(i, '/', len(filtered_list))
             arg_list = [fp] + args
             try:
                 audio2feats_process(arg_list)
