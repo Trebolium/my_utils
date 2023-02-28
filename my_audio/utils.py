@@ -45,18 +45,7 @@ def audio2feats_process(iterables_list):
         return print(f'path {dst_file_path} exists. Skipping.')
 
     # if file is m4a, pydub can read it
-    try:
-        if file_path.endswith('m4a'):
-            y, samplerate = librosa.load(file_path, sr=feat_params['sr'])
-        else:
-            y, samplerate = sf.read(file_path)
-        
-    except Exception as e:
-    # except (OSError, IndexError) as e:
-        return print(f'Exception: {e} caused by: {file_path}')
-
-    if samplerate != feat_params['sr']:
-        y = librosa.resample(y,samplerate, feat_params['sr'])
+    y = open_audio_fp(file_path, trg_sr=feat_params['sr'])
     
     if len(y.shape) == 2:
         if config.channel_choice == 'left':
@@ -65,7 +54,7 @@ def audio2feats_process(iterables_list):
             y = y[:,1]
 
     print(f'doing {file_path}')
-    # pdb.set_trace()
+
     if config.desilence:
         y = desilence_concat_audio(y, feat_params['sr'])
 
@@ -108,3 +97,17 @@ def audio2feats_process(iterables_list):
         print('this is the error: ', e)
         pdb.set_trace()
         return print(f'Exception: {e} caused by {file_path}')
+
+
+
+
+# open any kind of audio file, return audio and resampled y
+def open_audio_fp(file_path, trg_sr):
+        
+        if file_path.endswith('m4a'):
+            resampled_y, samplerate = librosa.load(file_path, sr=trg_sr)
+        else:
+            y, samplerate = sf.read(file_path)
+            if samplerate != trg_sr:
+                resampled_y = librosa.resample(y, samplerate, trg_sr)
+        return resampled_y
