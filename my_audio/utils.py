@@ -2,6 +2,7 @@ import os, pdb, librosa
 import numpy as np
 import pyworld as pw
 import soundfile as sf
+import crepe
 from my_audio.world import get_world_feats
 from my_audio.editor import desilence_concat_audio
 from my_audio.mel import audio_to_mel_autovc, db_normalize, add_butter_noise
@@ -79,10 +80,31 @@ def audio2feats_process(iterables_list):
             hop_size = iterables_list[5]
             db_unnormed_melspec = audio_to_mel_autovc(y, feat_params['fft_size'], hop_size, mel_filter)
             feats = db_normalize(db_unnormed_melspec, min_level)
-        feats = feats.astype(np.float32)
-        np.save(dst_file_path, feats)
+        elif config.feat_type == 'crepe':
+            batch_size = 1
+            device = 'cuda:1'
+            model = 'full'
+            # hop_length = feat_params['sr']*(feat_params['frame_dur_ms']/1000)
+            timestamp, frequency_prediction, confidence, activation = crepe.predict(y, feat_params['sr'], viterbi=False, step_size=feat_params['frame_dur_ms'])
+            # pitch = torchcrepe.predict(y,
+            #                            feat_params['sr'],
+            #                            hop_length,
+            #                            feat_params['fmin'],
+            #                            feat_params['fmax'],
+            #                            model = model,
+            #                            batch_size = batch_size,
+            #                            device = device)
+            # pdb.set_trace()
+        
+        if config.feat_type == 'crepe':
+            # pdb.set_trace()
+            np.savez(dst_file_path, frequency_prediction, confidence)
+        else:
+            feats = feats.astype(np.float32)
+            np.save(dst_file_path, feats)
         return print(f'finished {file_path}')
     
     except Exception as e:
+        print('this is the error: ', e)
         pdb.set_trace()
         return print(f'Exception: {e} caused by {file_path}')
