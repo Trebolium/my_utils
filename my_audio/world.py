@@ -159,26 +159,6 @@ def onehotmidi_from_world_fp(pitch_feat_path, offset, window_size, midi_range):
     return onehot_midi
 
 
-def chandna_feats(audio, feat_params, mode='mfsc'):
-    pdb.set_trace()
-    feats=pw.wav2world(audio, feat_params['sr'],frame_period=feat_params['frame_dur_ms'])
-    ap = 10*np.log10(feats[2]**2)
-    harm=10*np.log10(feats[1])
-    f0 = feats[0]
-    y = freq_to_vuv_midi(f0)
-
-    if mode == 'mfsc':
-        harmy=sp_to_mfsc(harm,40,0.45)
-        apy=sp_to_mfsc(ap,4,0.45)
-    elif mode == 'mgc':
-        harmy=sp_to_mgc(harm,60,0.45)
-        apy=sp_to_mgc(ap,4,0.45)
-
-    out_feats=np.concatenate((harmy,apy,y),axis=1)
-
-    return out_feats
-
-
 def mfsc_to_world_to_audio(harm_mfsc, ap_mfsc, midi_voicings, feat_params):
     # pdb.set_trace()
     # try:
@@ -210,33 +190,6 @@ def code_harmonic(sp, order, alpha=0.45, mcepInput=3, en_floor=10 ** (-80 / 20))
     return mfsc
 
 
-def get_seaniezhao_feats(file_path, feat_params, use_npss):
-    """Process used from https://github.com/seaniezhao/torch_npss/blob/master/data/preprocess.py"""
-    x, org_sr = sf.read(file_path)
-    if org_sr != feat_params['sr']:
-        y = librosa.resample(x, org_sr, feat_params['sr'])
-    f0, t_stamp = pw.harvest(y, feat_params['sr'], feat_params['fmin'], feat_params['fmax'], feat_params['frame_dur_ms'])
-    refined_f0 = pw.stonemask(y, f0, t_stamp, feat_params['sr'])
-    spec_env = pw.cheaptrick(y, refined_f0, t_stamp, feat_params['sr'], f0_floor=feat_params['fmin'])
-    if use_npss == True:
-        spec_env = code_harmonic(spec_env, feat_params['num_feats'])
-    else:
-        spec_env = pw.code_spectral_envelope(spec_env, feat_params['sr'], feat_params['num_feats'])
-    aper_env = pw.d4c(y, refined_f0, t_stamp, feat_params['sr'])
-    ap_env_reduced = pw.code_aperiodicity(aper_env, feat_params['sr'])
-    return refined_f0, spec_env, aper_env, ap_env_reduced
-
-
-def gen_world_feat(y, feat_params):
-    """Process used from https://github.com/seaniezhao/torch_npss/blob/master/data/preprocess.py"""
-    f0, t_stamp = pw.harvest(y, feat_params['sr'], feat_params['fmin'], feat_params['fmax'], feat_params['frame_dur_ms'])
-    refined_f0 = pw.stonemask(y, f0, t_stamp, feat_params['sr'])
-    spec_env = pw.cheaptrick(y, refined_f0, t_stamp, feat_params['sr'], f0_floor=feat_params['fmin'])
-    spec_env = code_harmonic(spec_env, feat_params['num_feats'])
-    # aper_env = pw.d4c(y, refined_f0, t_stamp, feat_params['sr'])
-    # ap_env_reduced = pw.code_aperiodicity(aper_env, feat_params['sr'])
-    return spec_env
-
 def get_world_feats(y, feat_params):
     y = y.astype('double')
     if feat_params['w2w_process'] == 'wav2world':
@@ -261,7 +214,7 @@ def get_world_feats(y, feat_params):
         aper = code_harmonic(aper, feat_params['num_aper_feats'])
     elif feat_params['dim_red_method'] == 'world':
         harm = pw.code_spectral_envelope(harm, feat_params['sr'], feat_params['num_harm_feats'])
-        aper = pw.code_aperiodicity(aper, feat_params['num_harm_feats'])
+        aper = pw.code_aperiodicity(aper, feat_params['sr'])
     elif feat_params['dim_red_method'] == 'chandna':
         harm = 10*np.log10(harm) # previously, using these logs was a separate optional process to 'chandna'
         aper = 10*np.log10(aper**2)
