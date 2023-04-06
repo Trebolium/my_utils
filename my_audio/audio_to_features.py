@@ -1,4 +1,4 @@
-import os, time, sys, argparse, pdb
+import os, time, sys, argparse
 from librosa.filters import mel
 import numpy as np
 sys.path.insert(1, '/homes/bdoc3/my_utils')
@@ -80,6 +80,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='params for converting audio to spectral using world', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-dd','--dst_dir', default='/import/c4dm-02/bdoc3/spmel/vctk_qianParams', type=str)
     parser.add_argument('-sd','--src_dir', default='/import/c4dm-datasets/VCTK-Corpus-0.92/wav48_silence_trimmed', type=str)
+    parser.add_argument('-de','--dst_ext', default='.npy', type=str)
     parser.add_argument('-fd','--find_diff', default=1, type=int)
     #multithread
     parser.add_argument('-np','--num_processes', default=16, type=int)    
@@ -137,7 +138,7 @@ if __name__ == '__main__':
 
     if config.find_diff:
         _, dst_dir_all_fps = recursive_file_retrieval(config.dst_dir)
-        dst_dir_all_fns = [os.path.basename(path)[:-len(config.audio_ext)] for path in dst_dir_all_fps]
+        dst_dir_all_fns = [os.path.basename(path)[:-len(config.dst_ext)] for path in dst_dir_all_fps]
         filtered_list = [path for path in filtered_list if os.path.basename(path)[:-len(config.audio_ext)] not in dst_dir_all_fns]
 
     if config.feat_type == 'mel':
