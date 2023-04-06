@@ -40,13 +40,23 @@ def audio2feats_process(iterables_list):
 
     # generate destination path and check to see is it available
     dst_file_path = os.path.join(fp_dir, os.path.basename(file_path)[:-len(config.audio_ext)] +config.numpy_ext)
-    # pdb.set_trace()
+    pdb.set_trace()
     if os.path.exists(dst_file_path):
         return print(f'path {dst_file_path} exists. Skipping.')
 
     # if file is m4a, pydub can read it
-    y = open_audio_fp(file_path, trg_sr=feat_params['sr'])
-    
+
+    if file_path.endswith('m4a'):
+        y, _ = librosa.load(file_path, sr=feat_params['sr'])
+    else:
+        y, samplerate = sf.read(file_path)
+        if samplerate != feat_params['sr']:
+            if not y.flags['F_CONTIGUOUS']:
+                y = librosa.resample(np.asfortranarray(y), samplerate, feat_params['sr'])
+            else:
+                y = librosa.resample(y, samplerate, feat_params['sr'])
+
+
     if len(y.shape) == 2:
         if config.channel_choice == 'left':
             y = y[:,0]
@@ -59,7 +69,6 @@ def audio2feats_process(iterables_list):
         y = desilence_concat_audio(y, feat_params['sr'])
 
     try:
-        # pdb.set_trace()
         if config.feat_type == 'world':
             feats = get_world_feats(y, feat_params)
         elif config.feat_type == 'mel':
@@ -73,20 +82,9 @@ def audio2feats_process(iterables_list):
             batch_size = 1
             device = 'cuda:1'
             model = 'full'
-            # hop_length = feat_params['sr']*(feat_params['frame_dur_ms']/1000)
             timestamp, frequency_prediction, confidence, activation = crepe.predict(y, feat_params['sr'], viterbi=False, step_size=feat_params['frame_dur_ms'])
-            # pitch = torchcrepe.predict(y,
-            #                            feat_params['sr'],
-            #                            hop_length,
-            #                            feat_params['fmin'],
-            #                            feat_params['fmax'],
-            #                            model = model,
-            #                            batch_size = batch_size,
-            #                            device = device)
-            # pdb.set_trace()
-        
+   
         if config.feat_type == 'crepe':
-            # pdb.set_trace()
             np.savez(dst_file_path, frequency_prediction, confidence)
         else:
             feats = feats.astype(np.float32)
@@ -101,13 +99,3 @@ def audio2feats_process(iterables_list):
 
 
 
-# open any kind of audio file, return audio and resampled y
-def open_audio_fp(file_path, trg_sr):
-        
-        if file_path.endswith('m4a'):
-            resampled_y, samplerate = librosa.load(file_path, sr=trg_sr)
-        else:
-            y, samplerate = sf.read(file_path)
-            if samplerate != trg_sr:
-                resampled_y = librosa.resample(y, samplerate, trg_sr)
-        return resampled_y
