@@ -142,7 +142,7 @@ if __name__ == '__main__':
         filtered_list = [path for path in filtered_list if os.path.basename(path)[:-len(config.audio_ext)] not in dst_dir_all_fns]
 
     if config.feat_type == 'mel':
-        mel_filter = mel(feat_params['sr'], feat_params['fft_size'], fmin=feat_params['fmin'], fmax=feat_params['fmax'], n_mels=feat_params['num_harm_feats']).T
+        mel_filter = mel(sr=feat_params['sr'], n_fft=feat_params['fft_size'], fmin=feat_params['fmin'], fmax=feat_params['fmax'], n_mels=feat_params['num_harm_feats']).T
         min_level = np.exp(-100 / 20 * np.log(10))
         hop_size = int((feat_params['frame_dur_ms']/1000) * feat_params['sr'])
         args = [config, feat_params, mel_filter, min_level, hop_size]

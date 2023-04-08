@@ -1,7 +1,6 @@
 import numpy as np
 import scipy, librosa, sys
 sys.path.insert(1, '/homes/bdoc3/my_utils')
-from my_audio.utils import desilence_concat_audio, open_audio_fp
 from my_os import recursive_file_retrieval
 from my_datasets.utils import make_dataset_dir
 from tqdm import tqdm
@@ -94,7 +93,7 @@ def track_energy(wave, win_len, win):
     wave = np.lib.pad(wave, pad_width=(win_len - hop_len, 0), mode="constant", constant_values=0)
 
     # post padding
-    wave = librosa.util.fix_length(wave, int(win_len * np.ceil(len(wave) / win_len)))
+    wave = librosa.util.fix_length(wave, size=int(win_len * np.ceil(len(wave) / win_len)))
 
     # cut into frames
     wavmat = librosa.util.frame(wave, frame_length=win_len, hop_length=hop_len)
