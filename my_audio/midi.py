@@ -11,6 +11,9 @@ def freqToMidi(freq):
         midi_note = 12 * log2(freq/ref_freq) + ref_midi
     return midi_note
 
-def midiToFreq(midi_note):
-    freq = 2**((midi_note-ref_midi)/12) * ref_freq
+def midiToFreq(midi):
+    
+    # if type(midi) == np.ndarray:
+    freq = 2**((midi-ref_midi)/12) * ref_freq
+
     return freq
