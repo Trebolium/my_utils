@@ -1,4 +1,4 @@
-import os, pdb, librosa
+import os, librosa
 import numpy as np
 import pyworld as pw
 import soundfile as sf
@@ -40,7 +40,6 @@ def audio2feats_process(iterables_list):
 
     # generate destination path and check to see is it available
     dst_file_path = os.path.join(fp_dir, os.path.basename(file_path)[:-len(config.audio_ext)] +config.numpy_ext)
-    pdb.set_trace()
     if os.path.exists(dst_file_path):
         return print(f'path {dst_file_path} exists. Skipping.')
 
@@ -63,38 +62,30 @@ def audio2feats_process(iterables_list):
         else:
             y = y[:,1]
 
-    print(f'doing {file_path}')
+    print(f'processing {file_path}')
 
     if config.desilence:
         y = desilence_concat_audio(y, feat_params['sr'])
 
-    try:
-        if config.feat_type == 'world':
-            feats = get_world_feats(y, feat_params)
-        elif config.feat_type == 'mel':
-            y = add_butter_noise(y, feat_params['sr'])
-            mel_filter = iterables_list[3]
-            min_level = iterables_list[4]
-            hop_size = iterables_list[5]
-            db_unnormed_melspec = audio_to_mel_autovc(y, feat_params['fft_size'], hop_size, mel_filter)
-            feats = db_normalize(db_unnormed_melspec, min_level)
-        elif config.feat_type == 'crepe':
-            batch_size = 1
-            device = 'cuda:1'
-            model = 'full'
-            timestamp, frequency_prediction, confidence, activation = crepe.predict(y, feat_params['sr'], viterbi=False, step_size=feat_params['frame_dur_ms'])
-   
-        if config.feat_type == 'crepe':
-            np.savez(dst_file_path, frequency_prediction, confidence)
-        else:
-            feats = feats.astype(np.float32)
-            np.save(dst_file_path, feats)
-        return print(f'finished {file_path}')
-    
-    except Exception as e:
-        print('this is the error: ', e)
-        pdb.set_trace()
-        return print(f'Exception: {e} caused by {file_path}')
+    if config.feat_type == 'world':
+        feats = get_world_feats(y, feat_params)
+    elif config.feat_type == 'mel':
+        y = add_butter_noise(y, feat_params['sr'])
+        mel_filter = iterables_list[3]
+        min_level = iterables_list[4]
+        hop_size = iterables_list[5]
+        db_unnormed_melspec = audio_to_mel_autovc(y, feat_params['fft_size'], hop_size, mel_filter)
+        feats = db_normalize(db_unnormed_melspec, min_level)
+    elif config.feat_type == 'crepe':
+        _, frequency_prediction, confidence, _ = crepe.predict(y, feat_params['sr'], viterbi=False, step_size=feat_params['frame_dur_ms'])
+
+    if config.feat_type == 'crepe':
+        np.savez(dst_file_path, frequency_prediction, confidence)
+    else:
+        feats = feats.astype(np.float32)
+        np.save(dst_file_path, feats)
+    # return print(f'finished {file_path}')
+
 
 
 
