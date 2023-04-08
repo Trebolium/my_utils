@@ -7,6 +7,7 @@ from my_os import recursive_file_retrieval
 ref_ds = sys.argv[1]
 subject_ds = sys.argv[2]
 ref_ext = sys.argv[3]
+hidden_files_substr = '.0.'
 
 # setup dir and tree
 subsets = ['train', 'val', 'test']
@@ -19,20 +20,24 @@ _, src_fps = recursive_file_retrieval(ref_ds)
 for fp in tqdm(src_fps):
     # pdb.set_trace()
     
-    if fp.endswith(ref_ext):
-        fn = fp.split('/')[-1]
-        subset = fp.split('/')[-3]
-        voice_dir = fp.split('/')[-2]
-        
-        trg_voice_dir = os.path.join(subject_ds, subset, voice_dir)
-        trg_fp = os.path.join(trg_voice_dir, fn)
-        # pdb.set_trace()
-        if os.path.exists(trg_fp.split('.')[0] +'.npy.npz'):
-            continue
-        if not os.path.exists(trg_voice_dir):
-            os.mkdir(trg_voice_dir)
+    if fp.endswith(ref_ext) and not hidden_files_substr in fp:
         try:
-            os.rename(os.path.join(subject_ds, voice_dir), trg_voice_dir)
+            fn = fp.split('/')[-1]
+            subset = fp.split('/')[-3]
+            voice_dir = fp.split('/')[-2]
+            
+            trg_voice_dir = os.path.join(subject_ds, subset, voice_dir)
+            trg_fp = os.path.join(trg_voice_dir, fn)
+            # pdb.set_trace()
+            if os.path.exists(trg_fp.split('.')[0] +'.npy'):
+                continue
+            
+            if not os.path.exists(trg_voice_dir):
+                os.mkdir(trg_voice_dir)
+            try:
+                os.rename(os.path.join(subject_ds, voice_dir), trg_voice_dir)
+            except:
+                pdb.set_trace()
         except:
             pdb.set_trace()
 
