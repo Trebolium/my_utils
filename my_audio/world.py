@@ -143,6 +143,20 @@ def freq_to_vuv_midi(f0, ignore_pitchless=True):
     return y
 
 
+def midi_voicings_from_pitch_feats(world_pitch_feats, offset, window_size):
+
+    midi_contour = world_pitch_feats[:,0]
+    unvoiced = world_pitch_feats[:,1].astype(int) == 1
+    midi_contour[unvoiced] = 0
+
+    if offset < 0:
+        midi_trimmed, _ = fix_feat_length(midi_contour, window_size)
+    else:
+        midi_trimmed = midi_contour[offset:(offset+window_size)]
+    
+    return midi_trimmed
+
+
 def onehotmidi_from_world_fp(pitch_feat_path, offset, window_size, midi_range):
     pitch_pred = np.load(pitch_feat_path)[:,-2:]
     midi_contour = pitch_pred[:,0]
