@@ -5,7 +5,7 @@ for i in sys.path:
     if i == '/homes/bdoc3/wavenet_vocoder':
         sys.path.remove(i)
 
-sys.path.insert(1, '/homes/bdoc3/my_utils')
+if os.path.abspath('.../my_utils') not in sys.path: sys.path.insert(1, os.path.abspath('.../my_utils'))
 from my_os import recursive_file_retrieval
 
 voice_id_list = pickle.load(open('missing_voice.pkl','rb'))

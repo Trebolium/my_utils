@@ -3,7 +3,7 @@ import subprocess
 import os
 import math
 import sys
-sys.path.insert(1, '/homes/bdoc3/my_utils') # only need to do this once in the main script
+if os.path.abspath('.../my_utils') not in sys.path: sys.path.insert(1, os.path.abspath('.../my_utils')) # only need to do this once in the main script
 from my_os import recursive_file_retrieval
 from my_csv import vctk_id_gender_list
 from tqdm import tqdm

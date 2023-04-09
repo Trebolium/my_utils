@@ -3,12 +3,7 @@ import soundfile as sf
 import numpy as np
 from tqdm import tqdm
 
-# for some reason there is an unwatend path in sys.path. Must figure out how to remove this
-for i in sys.path:
-    if i == '/homes/bdoc3/wavenet_vocoder':
-        sys.path.remove(i)
-
-sys.path.insert(1, '/homes/bdoc3/my_utils')
+if os.path.abspath('.../my_utils') not in sys.path: sys.path.insert(1, os.path.abspath('.../my_utils'))
 # from schluterNorm_dataset import normalise_data
 from my_os import recursive_file_retrieval
 from my_audio.world import chandna_feats

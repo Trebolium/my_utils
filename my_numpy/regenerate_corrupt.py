@@ -5,7 +5,7 @@ import concurrent.futures
 from pydub import AudioSegment
 import soundfile as sf
 from librosa.filters import mel
-sys.path.insert(1, '/homes/bdoc3/my_utils')
+if os.path.abspath('.../my_utils') not in sys.path: sys.path.insert(1, os.path.abspath('.../my_utils'))
 
 from my_os import recursive_file_retrieval
 from my_container import substring_exclusion, substring_inclusion, balance_by_strings, separate_by_starting_substring

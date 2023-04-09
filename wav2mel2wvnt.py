@@ -3,7 +3,7 @@ import numpy as np
 import soundfile as sf
 from gen_spect import audio_to_mel
 from torch.backends import cudnn
-sys.path.insert(1, '/homes/bdoc3/my_data/autovc_data')
+if os.path.abspath('../my_utils') not in sys.path: sys.path.insert(1, os.path.abspath('../my_utils'))
 from hparams import hparams
 from synthesis import build_model
 from synthesis import wavegen
