@@ -98,6 +98,7 @@ def mgc_to_mfsc(mgc):
 
 def sp_to_mfsc(sp, ndim, fw, noise_floor_db=-120.0):
     # helper function, sp->mgc->mfsc in a single step
+    pdb.set_trace()
     mgc = sp_to_mgc(sp, ndim, fw, noise_floor_db)
     mfsc = mgc_to_mfsc(mgc)
     return mfsc
@@ -173,6 +174,21 @@ def onehotmidi_from_world_fp(pitch_feat_path, offset, window_size, midi_range):
     return onehot_midi
 
 
+def onehotmidi_from_world_pitch_feats(pitch_feats, offset, window_size, midi_range):
+    midi_contour = pitch_feats[:,0]
+    # remove the interpretted values generated because of unvoiced sections
+    unvoiced = pitch_feats[:,1].astype(int) == 1
+    midi_contour[unvoiced] = 0
+
+    if offset < 0:
+        midi_trimmed, _ = fix_feat_length(midi_contour, window_size)
+    else:
+        midi_trimmed = midi_contour[offset:(offset+window_size)]
+    onehot_midi = midi_as_onehot(midi_trimmed, midi_range)
+
+    return onehot_midi
+
+
 def mfsc_to_world_to_audio(harm_mfsc, ap_mfsc, midi_voicings, feat_params):
     # pdb.set_trace()
     # try:
@@ -205,7 +221,12 @@ def code_harmonic(sp, order, alpha=0.45, mcepInput=3, en_floor=10 ** (-80 / 20))
 
 
 def get_world_feats(y, feat_params):
+
+    for k, v in feat_params.items():
+        assert v is not None, f"Value for key '{k}' is 'None'."
+    
     y = y.astype('double')
+
     if feat_params['w2w_process'] == 'wav2world':
         feats=pw.wav2world(y, feat_params['sr'],frame_period=feat_params['frame_dur_ms'])
         harm = feats[1]
@@ -215,8 +236,10 @@ def get_world_feats(y, feat_params):
     else:
         if feat_params['w2w_process'] == 'harvest':
             f0, t_stamp = pw.harvest(y, feat_params['sr'], feat_params['fmin'], feat_params['fmax'], feat_params['frame_dur_ms'])
-        elif feat_params.w2w_process =='dio':
+        elif feat_params['w2w_process'] == 'dio':
             f0, t_stamp = pw.dio(y, feat_params['sr'], feat_params['fmin'], feat_params['fmax'], frame_period = feat_params['frame_dur_ms'])
+        else:
+            raise NotImplementedError('No value assigned to feature parameter dictionary "w2w_process".')
         refined_f0 = pw.stonemask(y, f0, t_stamp, feat_params['sr'])
         harm = pw.cheaptrick(y, refined_f0, t_stamp, feat_params['sr'], f0_floor=feat_params['fmin'])
         aper = pw.d4c(y, refined_f0, t_stamp, feat_params['sr'])
@@ -233,7 +256,15 @@ def get_world_feats(y, feat_params):
         harm = 10*np.log10(harm) # previously, using these logs was a separate optional process to 'chandna'
         aper = 10*np.log10(aper**2)
         harm = sp_to_mfsc(harm, feat_params['num_harm_feats'], 0.45)
-        aper =sp_to_mfsc(aper, feat_params['num_aper_feats'], 0.45)
+        aper = sp_to_mfsc(aper, feat_params['num_aper_feats'], 0.45)
+    elif feat_params['dim_red_method'] == 'mceps':
+        harm = sp_to_mgc(harm, feat_params['num_harm_feats'], 0.45)
+        aper = sp_to_mgc(aper, feat_params['num_aper_feats'], 0.45)
+    elif feat_params['dim_red_method'] == 'db_mceps':
+        harm = 10*np.log10(harm) # previously, using these logs was a separate optional process to 'chandna'
+        aper = 10*np.log10(aper**2)
+        harm = sp_to_mgc(harm, feat_params['num_harm_feats'], 0.45)
+        aper = sp_to_mgc(aper, feat_params['num_aper_feats'], 0.45)
     else:
         raise Exception("The value for dim_red_method was not recognised")
 

@@ -1,6 +1,7 @@
 import numpy as np
 import torch, pdb
 from my_os import recursive_file_retrieval
+from my_audio.utils import audio_io
 from tqdm import tqdm
 
 """
@@ -98,8 +99,7 @@ class TorchStatsRecorder:
     of the feature arrays stored within it
     Returns the total mean and std
 """
-def get_norm_stats(src_path, num_feats=None, which_cuda=0, red_dims=0, report_errs=False):
-
+def get_norm_stats(src_path, sr=None, num_feats=None, which_cuda=0, red_dims=0, report_errs=False):
     _, file_path_list = recursive_file_retrieval(src_path)
 
     # ensure val and test dirs are not within path
@@ -114,7 +114,11 @@ def get_norm_stats(src_path, num_feats=None, which_cuda=0, red_dims=0, report_er
     for f_path in tqdm(file_path_list):
         if not f_path.endswith('.npy'): continue
         try:
-            feats = np.load(f_path)
+            if sr == None:
+                feats = np.load(f_path)
+            else:
+                feats = audio_io(f_path, sr)
+
         except ValueError as e:
             error_list.append((f_path, e))
             continue
@@ -126,17 +130,17 @@ def get_norm_stats(src_path, num_feats=None, which_cuda=0, red_dims=0, report_er
     total_mean, total_std = stats_rec.mean, stats_rec.std
     # print(f'Total dataset stats: \n\n Mean: {total_mean} \n Std: {total_std}')
     if report_errs:
-        return total_mean, total_std
-    else:
         return total_mean, total_std, error_list
+    else:
+        return total_mean, total_std
 
 
 # apply stats data to incoming example
-def apply_norm_stats(feats, total_mean, total_std, which_cuda=0):
+def apply_norm_stats(feats, total_mean, total_std):
 
-    device = torch.device(f'cuda:{which_cuda}' if torch.cuda.is_available() else "cpu")
-    feats = torch.from_numpy(feats).to(device)
-    normed_feats = ((feats - total_mean) / total_std).cpu().numpy()
+    # device = torch.device(f'cuda:{which_cuda}' if torch.cuda.is_available() else "cpu")
+    # feats = torch.from_numpy(feats).to(device)
+    normed_feats = ((feats - total_mean) / total_std)
 
     return normed_feats
 

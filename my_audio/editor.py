@@ -164,11 +164,14 @@ def hwr(x):
 
 
 # process for removing silence from audio and reconcatenating
-def desilence_concat_audio(audio, rate):
+def desilence_concat_audio(audio, rate, flatten_chunks=True):
     conf = compute_activation_confidence(audio, rate)
     audio_chunks = audiochunks_from_conf(audio, rate, conf)
-    cat_audio = np.asarray([samp for audio_chunk in audio_chunks for samp in audio_chunk]) #crude, but as there are so few splits anticipated   
-    return cat_audio
+    if flatten_chunks:
+        cat_audio = np.asarray([samp for audio_chunk in audio_chunks for samp in audio_chunk]) #crude, but as there are so few splits anticipated   
+        return cat_audio
+    else:
+        return audio_chunks
 
 
 

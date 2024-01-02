@@ -1,8 +1,13 @@
-import os, librosa
+import os
+import pdb
+import warnings
+
+import librosa
 import numpy as np
 import pyworld as pw
 import soundfile as sf
 import crepe
+
 from my_audio.world import get_world_feats
 from my_audio.editor import desilence_concat_audio
 from my_audio.mel import audio_to_mel_autovc, db_normalize, add_butter_noise
@@ -15,6 +20,21 @@ Intended to be used to create dataset directories. Therefore includes:
     creationg of a dir with subsets train, val, test
     
 """
+
+def audio_io(file_path, trg_sr):
+    with warnings.catch_warnings(): # warning 
+        warnings.simplefilter("ignore", category=UserWarning)
+    file_path = str(file_path)
+    if file_path.endswith('.m4a'):
+        y, _ = librosa.load(file_path, sr=trg_sr)
+    else:
+        y, samplerate = sf.read(file_path)
+        if samplerate != trg_sr:
+            if not y.flags['F_CONTIGUOUS']:
+                y = librosa.resample(np.asfortranarray(y), orig_sr=samplerate, target_sr=trg_sr)
+            else:
+                y = librosa.resample(y, orig_sr=samplerate, target_sr=trg_sr)
+    return y
 
 def audio2feats_process(iterables_list):
     file_path = iterables_list[0]
@@ -33,7 +53,12 @@ def audio2feats_process(iterables_list):
     else:
         subset = ''
     
-    fp_dir = os.path.join(config.dst_dir, subset, os.path.basename(file_path).split('_')[0])
+    if len(os.path.basename(file_path).split('_')) > 1:
+        fp_dir = os.path.join(config.dst_dir, subset, os.path.basename(file_path).split('_')[0])
+    elif len(os.path.basename(file_path).split('-')) > 1:
+        fp_dir = os.path.join(config.dst_dir, subset, os.path.basename(file_path).split('-')[0])
+    else:
+        raise NotImplementedError
     
     if not os.path.exists(fp_dir):
         os.makedirs(fp_dir)
@@ -44,17 +69,7 @@ def audio2feats_process(iterables_list):
         return print(f'path {dst_file_path} exists. Skipping.')
 
     # if file is m4a, pydub can read it
-
-    if file_path.endswith('m4a'):
-        y, _ = librosa.load(file_path, sr=feat_params['sr'])
-    else:
-        y, samplerate = sf.read(file_path)
-        if samplerate != feat_params['sr']:
-            if not y.flags['F_CONTIGUOUS']:
-                y = librosa.resample(np.asfortranarray(y), samplerate, feat_params['sr'])
-            else:
-                y = librosa.resample(y, samplerate, feat_params['sr'])
-
+    y = audio_io(file_path, feat_params['sr'])
 
     if len(y.shape) == 2:
         if config.channel_choice == 'left':

@@ -1,8 +1,8 @@
 import numpy as np
-import sys, os, argparse, pickle, librosa
+import sys, os, argparse, pickle, librosa, pdb
 import soundfile as sf
 from librosa.filters import mel
-if os.path.abspath('.../my_utils') not in sys.path: sys.path.insert(1, os.path.abspath('.../my_utils'))
+if os.path.abspath('/homes/bdoc3/my_utils') not in sys.path: sys.path.insert(1, os.path.abspath('/homes/bdoc3/my_utils'))
 
 from my_threads import multithread_chunks
 from my_audio.world import get_world_feats
@@ -21,12 +21,12 @@ def edit_convert_save_track(iterables_list):
     # generate destination path
     if 'train' in file_path:
         subset = 'train'
-        fp_dir = os.path.join(config.dst_dir, subset, os.path.basename(file_path).split('_')[0])
+        fp_dir = os.path.join(config.dst_dir, subset, os.path.basename(file_path).split(config.delimiter)[0])
     elif 'val' in file_path:
         subset = 'val'
-        fp_dir = os.path.join(config.dst_dir, subset, os.path.basename(file_path).split('_')[0])
+        fp_dir = os.path.join(config.dst_dir, subset, os.path.basename(file_path).split(config.delimiter)[0])
     else:
-        fp_dir = os.path.join(config.dst_dir, os.path.basename(file_path).split('_')[0])
+        fp_dir = os.path.join(config.dst_dir, os.path.basename(file_path).split(config.delimiter)[0])
     # CHECK THAT FILENAMES ARE IN COMPATIBLE FORMAT FOR THIS
     if not os.path.exists(fp_dir):
         os.makedirs(fp_dir)
@@ -81,6 +81,8 @@ parser.add_argument('-p','--pkl', default='', type=str)
 parser.add_argument('-e','--ext', default='m4a', type=str)
 parser.add_argument('-np','--num_processes', default=16, type=int)    
 #feat params (bool, str, int)
+parser.add_argument('-ild','--is_libri_ds', default=0, type=int)
+parser.add_argument('-dl','--delimiter', default='_', type=str)    
 parser.add_argument('-ft','--feat_type', default='mel', type=str)
 parser.add_argument('-wp','--w2w_process', default='wav2world', type=str)
 parser.add_argument('-drm','--dim_red_method', default='chandna', type=str)
@@ -110,10 +112,12 @@ feat_params = {'w2w_process':config.w2w_process,
                 "fmin":config.fmin,
                 "fmax":config.fmax
                 }
-
 exceptions = pickle.load(open(config.pkl, 'rb'))
 # keep fn and its parent dir, and append this to the src_dir
-filtered_list = [os.path.join(config.src_dir, os.path.basename(path).split('_')[0], os.path.basename(path)[:-3]+config.ext) for types, path in exceptions if path.endswith('npy')]
+if config.is_libri_ds:
+    filtered_list = [os.path.join(config.src_dir, os.path.basename(path).split('-')[0], os.path.basename(path).split('-')[1], os.path.basename(path)[:-3]+config.ext) for types, path in exceptions if path.endswith('npy')]
+else:
+    filtered_list = [os.path.join(config.src_dir, os.path.basename(path).split(config.delimiter)[0], os.path.basename(path)[:-3]+config.ext) for types, path in exceptions if path.endswith('npy')]
 
 if config.feat_type == 'mel':
     mel_filter = mel(feat_params['sr'], feat_params['fft_size'], fmin=feat_params['fmin'], fmax=feat_params['fmax'], n_mels=feat_params['num_harm_feats']).T

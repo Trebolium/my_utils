@@ -1,7 +1,7 @@
 import numpy as np
-import sys, pickle, os
+import sys, pickle, os, pdb
 from tqdm import tqdm
-if os.path.abspath('.../my_utils') not in sys.path: sys.path.insert(1, os.path.abspath('.../my_utils'))
+if os.path.abspath('/homes/bdoc3/my_utils') not in sys.path: sys.path.insert(1, os.path.abspath('/homes/bdoc3/my_utils'))
 from my_os import recursive_file_retrieval
 
 """Counts corrupt numpy files in dir and saves list as pickle"""

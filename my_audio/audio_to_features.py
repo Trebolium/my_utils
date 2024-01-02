@@ -1,7 +1,10 @@
 import os, time, sys, argparse
+import pdb
 from librosa.filters import mel
 import numpy as np
-if os.path.abspath('.../my_utils') not in sys.path: sys.path.insert(1, os.path.abspath('.../my_utils'))
+# if os.path.abspath('.../my_utils') not in sys.path: sys.path.insert(1, os.path.abspath('.../my_utils'))
+if os.path.abspath('/homes/bdoc3/my_utils') not in sys.path: sys.path.insert(1, os.path.abspath('/homes/bdoc3/my_utils'))
+
 from my_os import recursive_file_retrieval
 from my_audio.utils import audio2feats_process
 from my_container import substring_exclusion, substring_inclusion, balance_by_strings, separate_by_starting_substring
@@ -43,6 +46,14 @@ def wav_filter(rootDir, config):
     config.audio_ext = '.wav'
     _, fileList = recursive_file_retrieval(rootDir)
     filtered_list = [fp for fp in fileList if fp.endswith(config.audio_ext) and not fp.startswith('.')]
+    return filtered_list
+
+def libri_filter(rootDir, config):
+    
+    config.audio_ext = '.flac'
+    _, fileList = recursive_file_retrieval(rootDir)
+    filtered_list = [fp for fp in fileList if fp.endswith(config.audio_ext) and not fp.startswith('.')]
+    pdb.set_trace()
     return filtered_list
 
 def vocalset_filter(rootDir, config):
@@ -127,6 +138,8 @@ if __name__ == '__main__':
         filtered_list = vctk_filter(config.src_dir, config)
     elif 'damp' in config.which_dataset.lower():
         filtered_list = damp_filter(config.src_dir, config)
+    elif 'libri' in config.which_dataset.lower():
+        filtered_list = libri_filter(config.src_dir, config)
     elif 'nus' in config.which_dataset.lower():
         filtered_list = nus_filter(config.src_dir, config)
     elif 'mir1k' in config.which_dataset.lower() or 'vocadito' in config.which_dataset.lower():

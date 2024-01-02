@@ -1,7 +1,12 @@
 import os, sys, pdb, copy, csv
+import ast
 import numpy as np
 
 """List manipulations"""
+
+def string_of_list_to_list(stringlist):
+    """Converts a string representation of a list to a python list object"""
+    return ast.literal_eval(stringlist)
 
 # takes a list of substrings and removes any entry the main list that contains these substrings
 def substring_exclusion(main_list, exclude_list):

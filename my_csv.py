@@ -16,4 +16,15 @@ def csvfile_to_list(fp):
     list_of_rows = [row for row in reader]
     return list_of_rows
 
-
+def vctk_id_gender_list(csv_path='/homes/bdoc3/my_data/text_data/vctk/speaker-info.txt'):   
+    """Generate separate lists of singer IDs and genders"""
+    f = open(csv_path, 'r')
+    header = f.readline()
+    lines = f.readlines()
+    id_list = []
+    gender_list = []
+    for line in lines:
+        line_elements = [el for el in line.split(' ') if el!='']
+        id_list.append(line_elements[0])
+        gender_list.append(line_elements[2])
+    return id_list, gender_list

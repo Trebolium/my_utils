@@ -1,4 +1,4 @@
-import os, pickle
+import os, pickle, pdb
 
 
 corruptions_found = True
@@ -10,5 +10,5 @@ while corruptions_found:
     if len(corrupt_list) == 0:
        corruptions_found  = False
     else:
-        os.system("python regenerate_corrupt.py -p=corrupt_numpy.pkl -fs=1024")
+        os.system("python regenerate_corrupt.py -p=corrupt_numpy.pkl -e flac -ild 1 -fs=1024 -dd /homes/bdoc3/my_data/spmel_data/LibriSpeech-trainOther/ -sd /import/c4dm-datasets/LibriSpeech/LibriSpeech/train-other-500")
 

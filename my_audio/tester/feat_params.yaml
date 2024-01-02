@@ -1,0 +1,9 @@
+dim_red_method: chandna
+fft_size: 1024
+fmax: 7600
+fmin: 90
+frame_dur_ms: 16
+num_aper_feats: 4
+num_harm_feats: 80
+sr: 16000
+w2w_process: wav2world

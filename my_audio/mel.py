@@ -39,17 +39,17 @@ def add_butter_noise(audio, sr):
     wav = y * 0.96 + (prng.rand(y.shape[0])-0.5)*1e-06
     return wav
 
-# mel_filter = mel(16000, 1024, fmin=90, fmax=7600, n_mels=80).T
+# mel_filter = mel(sr=16000, n_fft=1024, fmin=90, fmax=7600, n_mels=80).T
 """applies stft transform to audio, then mel filter banks"""
-def audio_to_mel_autovc(audio, fft_size, hop_size: int, mel_filter):
-    D = pySTFT(audio, fft_size, hop_size).T
+def audio_to_mel_autovc(audio, fft_size, hop_length: int, mel_filter):
+    D = pySTFT(audio, fft_size, hop_length).T
     db_unnormed_melspec = np.dot(D, mel_filter)
     return db_unnormed_melspec
 
 
-def raw_audio_to_mel_autovc(y, mel_filter, min_level, hop_size, feat_params):   
-    y = add_butter_noise(y,feat_params['sr'])
-    db_unnormed_melspec = audio_to_mel_autovc(y, feat_params['fft_size'], hop_size, mel_filter)
+def raw_audio_to_mel_autovc(y, mel_filter, min_level, hop_length, sr, fft_size):   
+    y = add_butter_noise(y, sr)
+    db_unnormed_melspec = audio_to_mel_autovc(y, fft_size, hop_length, mel_filter)
     autovc_mel = db_normalize(db_unnormed_melspec, min_level)
     return autovc_mel
 
@@ -68,6 +68,6 @@ def db_normalize(melspec, min_level, normalise=True):
 """ Achieves the same as audio_to_mel_autovc() but with librosa library"""
 def audio_to_mel_librosa(wav, sr, n_fft_size, hop, n_mels=80, fmin=90, fmax=7600):
     melspec = librosa.feature.melspectrogram(wav, sr=sr, n_fft=n_fft_size, hop_length=hop, n_mels=n_mels, fmin=fmin, fmax=fmax)
-    db_clipped_melspec = librosa.amplitude_to_db(melspec,ref=np.max)
-    default_axes_melspec = np.swapaxes(db_clipped_melspec, 0, 1)
+    db_melspec = librosa.amplitude_to_db(melspec,ref=np.max)
+    default_axes_melspec = np.swapaxes(db_melspec, 0, 1)
     return default_axes_melspec
