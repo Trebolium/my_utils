@@ -16,6 +16,22 @@ Intended to be used to create dataset directories. Therefore includes:
     
 """
 
+
+def audio_io(file_path, trg_sr):
+    with warnings.catch_warnings(): # warning 
+        warnings.simplefilter("ignore", category=UserWarning)
+    file_path = str(file_path)
+    if file_path.endswith('.m4a'):
+        y, _ = librosa.load(file_path, sr=trg_sr)
+    else:
+        y, samplerate = sf.read(file_path)
+        if samplerate != trg_sr:
+            if not y.flags['F_CONTIGUOUS']:
+                y = librosa.resample(np.asfortranarray(y), orig_sr=samplerate, target_sr=trg_sr)
+            else:
+                y = librosa.resample(y, orig_sr=samplerate, target_sr=trg_sr)
+    return y
+
 def audio2feats_process(iterables_list):
     file_path = iterables_list[0]
     config = iterables_list[1] # all entries after 0 currently come from the args variable in main script
